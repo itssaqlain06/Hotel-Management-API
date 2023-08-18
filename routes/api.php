@@ -5,27 +5,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 
-Route::middleware('api')->get('/user', function (Request $request) {
-    return $request->user();
+// Route::middleware('api')->get('/user', function (Request $request) {
+//     return $request->user();
+// });
+
+Route::middleware('auth:api')->group(function(){
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user',[AuthController::class,'user']);
 });
 
-Route::post('/register',[AuthController::class,'store']);
 
-/* Route::post('/login', function (Request $request) {
-    $credentials = $request->only(['email', 'password']);
+Route::post('/register',[AuthController::class,'register']);
 
-    if (!$token = auth('api')->attempt($credentials)) {
-        abort(401, 'Nao Autorizado');
-    }
+Route::post('/login', [AuthController::class, 'login']);
 
-    return response()->json([
-        'data' => [
-            'token' => $token,
-            'token_type' => 'bearer',
-            'expires_in' => auth()->factory()->getTTL() * 60
-        ]
-    ]);
- });*/
-
-
- Route::post('/login', [AuthController::class, 'geToken']);
