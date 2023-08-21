@@ -20,8 +20,8 @@ class HotelController extends Controller
             'state' =>'required',
             'city' =>'required',
             'address' =>'required',
-            'phone' =>'required|unique:hotels,phone',
-            'email' => 'required|unique:hotels,email',
+            'phone' =>'required|min:11|max:11|unique:hotels,phone',
+            'email' =>'required|unique:hotels,email',
             'checkin_time' => 'required',
             'checkout_time' =>'required',
             'user_id' => 'required'
@@ -98,12 +98,29 @@ class HotelController extends Controller
           'status' => 1
         ],
         200
-    );
+        );
     }
 
-    public function destroy(Request $request){
+    public function index($id){
+        $findHotel=Hotel::find($id);
+        if(is_null($findHotel)){
+            $response=[
+               'message' => 'Hotel not exists!',
+               'status' => 0,
+             ];
+             $errorCode=401;
+        }else{
+                $response =[
+                    'data' => $findHotel,
+                  'status' => 1
+                ];
+                $errorCode=200;
+            }
+        return response()->json($response,$errorCode);
+    }
+
+    public function destroy(Request $request,$id){
         $valdidate=Validator::make($request->all(),[
-            'id' =>'required',
             'user_id' =>'required'
         ]);
         if($valdidate->fails()){
@@ -133,7 +150,7 @@ class HotelController extends Controller
                     ];
                     $errorCode=400;
         }else{
-            $hotel=Hotel::find($request->id);
+            $hotel=Hotel::find($id);
         if(is_null($hotel)){
             $response=
                 [
@@ -165,9 +182,8 @@ class HotelController extends Controller
         return response()->json($response,$errorCode);
     }
 
-    public function update(Request $request){
+    public function update(Request $request,$id){
         $validate = Validator::make($request->all(), [
-            'id' => 'required',
             'user_id' => 'required',
         ]);
 
@@ -196,7 +212,7 @@ class HotelController extends Controller
                     ];
                     $errorCode=400;
             }else{
-                $hotel = Hotel::find($request->id);
+                $hotel = Hotel::find($id);
 
                 if (is_null($hotel)) {
                     $response = [

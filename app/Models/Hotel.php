@@ -23,4 +23,8 @@ class Hotel extends Model
         'checkout_time',
         'user_id'
     ];
+
+    public function user(){
+        return $this->hasMany(User::class);
+    }
 }
