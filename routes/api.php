@@ -3,7 +3,6 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\HotelController;
 use App\Http\Controllers\RoomController;
-use App\Http\Controllers\VisitorController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('user/register',[AuthController::class,'register']);
