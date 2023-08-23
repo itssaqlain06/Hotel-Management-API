@@ -4,16 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\Hotel;
+use App\Models\Reservation;
 use App\Models\Room;
 use App\Models\User;
 use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Tymon\JWTAuth\Facades\JWTAuth;
 
-class BookingController extends Controller
+class ReservationController extends Controller
 {
+
     public function store(Request $request)
     {
         $validatedData = Validator::make($request->all(), [
@@ -50,7 +51,7 @@ class BookingController extends Controller
         // Check room availability
         $roomAvailable = $this->checkRoomAvailability($request->room_id, $request->start_date, $request->end_date);
         if (!$roomAvailable) {
-            return response()->json(['message' => 'Room is not available for the selected dates'], 400);
+            return response()->json(['message' => 'The reservation for the required room is not available for the selected dates'], 400);
         }
         $start_date = new DateTime($request->start_date);
         $end_date = new DateTime($request->end_date);
@@ -69,51 +70,17 @@ class BookingController extends Controller
                 'end_date' => $request->end_date,
                 'number_of_guests' => $request->number_of_guests,
                 'total_amount' => $total_amount,
-                'status' => 1,
             ];
-            $booking_done = Booking::create($data);
+            if($request->special_request){
+                $data['special_request'] = $request->special_request;
+            }
+            $reservation_done = Reservation::create($data);
             DB::commit();
-            return response()->json(['message' => 'Booking created successfully', 'data' => $booking_done], 200);
+            return response()->json(['message' => 'Reservation created successfully', 'data' => $reservation_done], 200);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Internal server error', 'error' => $e->getMessage()], 500);
         }
-    }
-
-    public function show()
-    {
-        try {
-            $user = JWTAuth::parseToken()->authenticate();
-        } catch (\Throwable $e) {
-            return response()->json(['message' => 'Token decoding error'], 401);
-        }
-        if ($user->id !== 1 && $user->id !== 2) {
-            return response()->json(['message' => 'You are not authorized to perform this action'], 403);
-        }
-        return response()->json([
-            'All booking details' => [
-                'booking' => Booking::all()
-            ],
-            'status' => 1
-        ], 200);
-    }
-
-    public function index($id){
-        $findBooking=Booking::find($id);
-        if(is_null($findBooking)){
-            $response=[
-               'message' => 'Booking not exists!',
-               'status' => 0,
-             ];
-             $errorCode=401;
-        }else{
-                $response =[
-                    'booking' => $findBooking,
-                    'status' => 1
-                ];
-                $errorCode=200;
-            }
-        return response()->json($response,$errorCode);
     }
 
     protected function checkRoomAvailability($roomId, $startDate, $endDate, $excludeBookingId = null)
@@ -129,11 +96,57 @@ class BookingController extends Controller
                 if ($excludeBookingId !== null) {
                     $query->where('id', '<>', $excludeBookingId);
                 }
+                $query->where('status', '=', 1);
+            });
+
+        $reservationsQuery = Reservation::where('room_id', $roomId)
+            ->where(function ($query) use ($startDate, $endDate, $excludeBookingId) {
+                $query->whereBetween('start_date', [$startDate, $endDate])
+                    ->orWhereBetween('end_date', [$startDate, $endDate])
+                    ->orWhere(function ($query) use ($startDate, $endDate) {
+                        $query->where('start_date', '<=', $startDate)
+                            ->where('end_date', '>=', $endDate);
+                    });
+                if ($excludeBookingId !== null) {
+                    $query->where('id', '<>', $excludeBookingId);
+                }
+                $query->whereIn('status', ['pending', 'confirmed']);
             });
 
         $bookingsCount = $bookingsQuery->count();
+        $reservationsCount = $reservationsQuery->count();
 
-        return $bookingsCount === 0;
+        return $bookingsCount === 0 && $reservationsCount === 0;
+    }
+
+
+
+    public function show()
+    {
+        return response()->json([
+            'All reservation details' => [
+                'reservation' => Reservation::all()
+            ],
+            'status' => 1
+        ], 200);
+    }
+
+    public function index($id){
+        $findReservation=Reservation::find($id);
+        if(is_null($findReservation)){
+            $response=[
+               'message' => 'Reservation not exists!',
+               'status' => 0,
+             ];
+             $errorCode=401;
+        }else{
+                $response =[
+                    'reservation' => $findReservation,
+                    'status' => 1
+                ];
+                $errorCode=200;
+            }
+        return response()->json($response,$errorCode);
     }
 
     public function update(Request $request, $id)
@@ -150,18 +163,19 @@ class BookingController extends Controller
             ], 400);
         }
 
-        $booking = Booking::find($id);
-        if (is_null($booking)) {
-            return response()->json(['message' => 'Booking not found'], 404);
+        $reservation = Reservation::find($id);
+        if (is_null($reservation)) {
+            return response()->json(['message' => 'Reservation not found'], 404);
         }
-        $findRoom = $booking->room_id;
+        $findRoom = $reservation->room_id;
         $findRoom=Room::find($findRoom);
 
-        // Check room availability for the updated dates
-        $roomAvailable = $this->checkRoomAvailability($booking->room_id, $request->start_date, $request->end_date,$id);
+        $roomAvailable = $this->checkRoomAvailability($reservation->room_id, $request->start_date, $request->end_date, $id);
+
         if (!$roomAvailable) {
-            return response()->json(['message' => 'Room is not available for the updated dates'], 400);
+            return response()->json(['message' => 'The reservation for the requested room is not available for the updated dates'], 400);
         }
+
 
         DB::beginTransaction();
         try {
@@ -176,13 +190,13 @@ class BookingController extends Controller
                 'end_date' => $request->end_date,
                 'number_of_guests' => $request->number_of_guests,
                 'total_amount' => $total_amount,
-                'special_requests' => $request->special_requests
+                'special_request' => $request->special_request
             ];
-            $booking->update($data);
+            $reservation->update($data);
             DB::commit();
             $response = [
-                'message' => 'Booking Updated Successfully',
-                'data' => $booking,
+                'message' => 'Reservation Updated Successfully',
+                'data' => $reservation,
                 'status' => 1
             ];
             $errorCode = 200;
@@ -200,36 +214,36 @@ class BookingController extends Controller
 
     public function cancel($id)
     {
-        $booking = Booking::find($id);
+        $reservation = Reservation::find($id);
 
-        if (is_null($booking)) {
-            return response()->json(['message' => 'Booking not found'], 404);
+        if (is_null($reservation)) {
+            return response()->json(['message' => 'Reservation not found'], 404);
         }
 
-        if ($booking->status == 1) {
-            $booking->status = 0;
-            $booking->save();
+        if ($reservation->status == 'pending' || $reservation->status == 'confirmed') {
+            $reservation->status = 'canceled';
+            $reservation->save();
 
-            return response()->json(['message' => 'Booking canceled successfully'], 200);
+            return response()->json(['message' => 'Reservation canceled successfully'], 200);
         } else {
-            return response()->json(['message' => 'Booking cannot be canceled'], 400);
+            return response()->json(['message' => 'Reservation cannot be canceled'], 400);
         }
     }
 
     public function destroy($id)
     {
-        $booking = Booking::find($id);
+        $reservation = Reservation::find($id);
 
-        if (is_null($booking)) {
-            return response()->json(['message' => 'Booking not found'], 404);
+        if (is_null($reservation)) {
+            return response()->json(['message' => 'Reservation not found'], 404);
         }
 
         DB::beginTransaction();
         try {
-            $booking->delete();
+            $reservation->delete();
             DB::commit();
             $response = [
-                'message' => 'Booking Deleted Successfully',
+                'message' => 'Reservation Deleted Successfully',
                 'status' => 1
             ];
             $errorCode = 200;
@@ -246,4 +260,20 @@ class BookingController extends Controller
         return response()->json($response, $errorCode);
     }
 
+    public function confirm($id)
+    {
+        $reservation = Reservation::find($id);
+
+        if (!$reservation) {
+            return response()->json(['message' => 'Reservation not found'], 404);
+        }
+
+        if ($reservation->status == 'pending') {
+            $reservation->status = 'confirmed';
+            $reservation->save();
+            return response()->json(['message' => 'Reservation confirmed successfully'], 200);
+        }else{
+            return response()->json(['message' => 'Reservation cannot be confirmed'], 400);
+        }
+    }
 }
