@@ -27,31 +27,31 @@ class ReservationController extends Controller
         ]);
 
         if ($validatedData->fails()) {
-            return response()->json($validatedData->errors(), 400);
+            return response()->json(['errors' => $validatedData->errors()], 400);
         }
 
         // Check if user exists
         $findUser = User::find($request->user_id);
         if (is_null($findUser)) {
-            return response()->json(['message' => 'User not found'], 404);
+            return response()->json(['errors' => ['message' => 'User not found']], 404);
         }
 
         // Check if hotel exists
         $findHotel = Hotel::find($request->hotel_id);
         if (is_null($findHotel)) {
-            return response()->json(['message' => 'Hotel not found'], 404);
+            return response()->json(['errors' => ['message' => 'Hotel not found']], 404);
         }
 
         // Check if room exists
         $findRoom = Room::find($request->room_id);
         if (is_null($findRoom)) {
-            return response()->json(['message' => 'Room not found'], 404);
+            return response()->json(['errors' => ['message' => 'Room not found']], 404);
         }
 
         // Check room availability
         $roomAvailable = $this->checkRoomAvailability($request->room_id, $request->start_date, $request->end_date);
         if (!$roomAvailable) {
-            return response()->json(['message' => 'The reservation for the required room is not available for the selected dates'], 400);
+            return response()->json(['errors' => ['message' => 'The reservation for the required room is not available for the selected dates']], 400);
         }
         $start_date = new DateTime($request->start_date);
         $end_date = new DateTime($request->end_date);
@@ -71,15 +71,15 @@ class ReservationController extends Controller
                 'number_of_guests' => $request->number_of_guests,
                 'total_amount' => $total_amount,
             ];
-            if($request->special_request){
+            if ($request->special_request) {
                 $data['special_request'] = $request->special_request;
             }
             $reservation_done = Reservation::create($data);
             DB::commit();
-            return response()->json(['message' => 'Reservation created successfully', 'data' => $reservation_done], 200);
+            return response()->json(['success' => ['message' => 'Reservation created successfully', 'data' => $reservation_done]], 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => 'Internal server error', 'error' => $e->getMessage()], 500);
+            return response()->json(['errors' => ['message' => 'Internal server error', 'error' => $e->getMessage()]], 500);
         }
     }
 
@@ -124,29 +124,32 @@ class ReservationController extends Controller
     public function show()
     {
         return response()->json([
-            'All reservation details' => [
-                'reservation' => Reservation::all()
+            'success' => [
+                'data' => Reservation::all()
             ],
             'status' => 1
         ], 200);
     }
 
-    public function index($id){
-        $findReservation=Reservation::find($id);
-        if(is_null($findReservation)){
-            $response=[
-               'message' => 'Reservation not exists!',
-               'status' => 0,
-             ];
-             $errorCode=401;
-        }else{
-                $response =[
-                    'reservation' => $findReservation,
-                    'status' => 1
-                ];
-                $errorCode=200;
-            }
-        return response()->json($response,$errorCode);
+    public function index($id)
+    {
+        $findReservation = Reservation::find($id);
+        if (is_null($findReservation)) {
+            $response = [
+                'errors' => [
+                    'message' => 'Reservation not exists!',
+                    'status' => 0,
+                ]
+            ];
+            $errorCode = 401;
+        } else {
+            $response = ['success' => [
+                'data' => $findReservation,
+                'status' => 1
+            ]];
+            $errorCode = 200;
+        }
+        return response()->json($response, $errorCode);
     }
 
     public function update(Request $request, $id)
@@ -157,23 +160,23 @@ class ReservationController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
+            return response()->json(['errors' => [
                 'error' => $validator->errors(),
                 'status' => 0
-            ], 400);
+            ]], 400);
         }
 
         $reservation = Reservation::find($id);
         if (is_null($reservation)) {
-            return response()->json(['message' => 'Reservation not found'], 404);
+            return response()->json(['errors' => ['message' => 'Reservation not found']], 404);
         }
         $findRoom = $reservation->room_id;
-        $findRoom=Room::find($findRoom);
+        $findRoom = Room::find($findRoom);
 
         $roomAvailable = $this->checkRoomAvailability($reservation->room_id, $request->start_date, $request->end_date, $id);
 
         if (!$roomAvailable) {
-            return response()->json(['message' => 'The reservation for the requested room is not available for the updated dates'], 400);
+            return response()->json(['errors' => ['message' => 'The reservation for the requested room is not available for the updated dates']], 400);
         }
 
 
@@ -185,7 +188,7 @@ class ReservationController extends Controller
             $days_difference = $interval->days;
             $total_amount = $findRoom->price * $days_difference;
 
-            $data=[
+            $data = [
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
                 'number_of_guests' => $request->number_of_guests,
@@ -194,18 +197,20 @@ class ReservationController extends Controller
             ];
             $reservation->update($data);
             DB::commit();
-            $response = [
+            $response = ['success' => [
                 'message' => 'Reservation Updated Successfully',
                 'data' => $reservation,
                 'status' => 1
-            ];
+            ]];
             $errorCode = 200;
         } catch (\Exception $e) {
             DB::rollBack();
             $response = [
-                'error' => 'Internal server error',
-                'message' => $e->getMessage(),
-                'status' => 0
+                'errors' => [
+                    'message' => 'Internal server error',
+                    'error' => $e->getMessage(),
+                    'status' => 0
+                ]
             ];
             $errorCode = 500;
         }
@@ -217,16 +222,16 @@ class ReservationController extends Controller
         $reservation = Reservation::find($id);
 
         if (is_null($reservation)) {
-            return response()->json(['message' => 'Reservation not found'], 404);
+            return response()->json(['errors' => ['message' => 'Reservation not found']], 404);
         }
 
         if ($reservation->status == 'pending' || $reservation->status == 'confirmed') {
             $reservation->status = 'canceled';
             $reservation->save();
 
-            return response()->json(['message' => 'Reservation canceled successfully'], 200);
+            return response()->json(['errors' => ['message' => 'Reservation canceled successfully']], 200);
         } else {
-            return response()->json(['message' => 'Reservation cannot be canceled'], 400);
+            return response()->json(['errors' => ['message' => 'Reservation cannot be canceled']], 400);
         }
     }
 
@@ -235,25 +240,25 @@ class ReservationController extends Controller
         $reservation = Reservation::find($id);
 
         if (is_null($reservation)) {
-            return response()->json(['message' => 'Reservation not found'], 404);
+            return response()->json(['errors' => ['message' => 'Reservation not found']], 404);
         }
 
         DB::beginTransaction();
         try {
             $reservation->delete();
             DB::commit();
-            $response = [
+            $response = ['success' => [
                 'message' => 'Reservation Deleted Successfully',
                 'status' => 1
-            ];
+            ]];
             $errorCode = 200;
         } catch (\Exception $e) {
             DB::rollBack();
-            $response = [
+            $response = ['errors' => [
                 'message' => 'Internal server error',
                 'error' => $e->getMessage(),
                 'status' => 0
-            ];
+            ]];
             $errorCode = 500;
         }
 
@@ -265,15 +270,15 @@ class ReservationController extends Controller
         $reservation = Reservation::find($id);
 
         if (!$reservation) {
-            return response()->json(['message' => 'Reservation not found'], 404);
+            return response()->json(['errors' => ['message' => 'Reservation not found']], 404);
         }
 
         if ($reservation->status == 'pending') {
             $reservation->status = 'confirmed';
             $reservation->save();
-            return response()->json(['message' => 'Reservation confirmed successfully'], 200);
-        }else{
-            return response()->json(['message' => 'Reservation cannot be confirmed'], 400);
+            return response()->json(['success' => ['message' => 'Reservation confirmed successfully']], 200);
+        } else {
+            return response()->json(['errors' => ['message' => 'Reservation cannot be confirmed']], 400);
         }
     }
 }

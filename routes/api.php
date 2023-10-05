@@ -7,44 +7,46 @@ use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\RoomController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('user/register',[AuthController::class,'register']);
+Route::post('user/register', [AuthController::class, 'register']);
 Route::post('user/login', [AuthController::class, 'login']);
+Route::get('user/details', [AuthController::class, 'userDetails']);
 
-Route::middleware('auth:api')->group(function(){
+
+// Route::middleware('auth:api')->group(function () {
     // User routes
+    Route::get('user', [AuthController::class, 'show']);
+    Route::get('user/{user}', [AuthController::class, 'index']);
     Route::post('user/logout', [AuthController::class, 'logout']);
-    Route::get('user',[AuthController::class,'show']);
-    Route::get('user/{user}',[AuthController::class,'index']);
-    Route::delete('user/delete/{user}',[AuthController::class,'destroy']);
+    Route::delete('user/delete/{user}', [AuthController::class, 'destroy']);
 
     // Hotel routes
-    Route::post('hotel/store',[HotelController::class,'store']);
-    Route::get('hotel',[HotelController::class,'show']);
-    Route::get('hotel/{hotel}',[HotelController::class,'index']);
-    Route::put('hotel/update/{hotel}',[HotelController::class,'update']);
-    Route::delete('hotel/delete/{hotel}',[HotelController::class,'destroy']);
+    Route::post('hotel/store', [HotelController::class, 'store']);
+    Route::get('hotel', [HotelController::class, 'show']);
+    Route::get('hotel/{hotel}', [HotelController::class, 'index']);
+    Route::put('hotel/update/{hotel}', [HotelController::class, 'update']);
+    Route::delete('hotel/delete/{hotel}', [HotelController::class, 'destroy']);
 
     // Room routes
-    Route::post('room/store',[RoomController::class,'store']);
-    Route::get('room',[RoomController::class,'show']);
-    Route::get('room/{room}',[RoomController::class,'index']);
-    Route::put('room/update/{room}',[RoomController::class,'update']);
-    Route::delete('room/delete/{room}',[RoomController::class,'destroy']);
+    Route::post('room/store', [RoomController::class, 'store']);
+    Route::get('room', [RoomController::class, 'show']);
+    Route::get('room/{room}', [RoomController::class, 'index']);
+    Route::put('room/update/{room}', [RoomController::class, 'update']);
+    Route::delete('room/delete/{room}', [RoomController::class, 'destroy']);
 
     // Booking routes
-    Route::post('room/booking',[BookingController::class,'store']);
-    Route::get('booking',[BookingController::class,'show']);
-    Route::get('booking/{booking}',[BookingController::class,'index']);
-    Route::delete('booking/delete/{booking}',[BookingController::class,'destroy']);
-    Route::put('booking/update/{booking}',[BookingController::class,'update']);
-    Route::post('booking/cancel/{booking}',[BookingController::class,'cancel']);
+    Route::post('booking/store', [BookingController::class, 'store']);
+    Route::get('booking', [BookingController::class, 'show']);
+    Route::get('booking/{booking}', [BookingController::class, 'index']);
+    Route::delete('booking/delete/{booking}', [BookingController::class, 'destroy']);
+    Route::put('booking/update/{booking}', [BookingController::class, 'update']);
+    Route::post('booking/cancel/{booking}', [BookingController::class, 'cancel']);
 
     // Reservation routes
-    Route::post('room/reservation',[ReservationController::class,'store']);
-    Route::get('reservation',[ReservationController::class,'show']);
-    Route::get('reservation/{reservation}',[ReservationController::class,'index']);
-    Route::put('reservation/update/{reservation}',[ReservationController::class,'update']);
-    Route::delete('reservation/delete/{reservation}',[ReservationController::class,'destroy']);
-    Route::post('reservation/cancel/{reservation}',[ReservationController::class,'cancel']);
-    Route::post('reservation/confirm/{reservation}',[ReservationController::class,'confirm']);
-});
+    Route::post('reservation/store', [ReservationController::class, 'store']);
+    Route::get('reservation', [ReservationController::class, 'show']);
+    Route::get('reservation/{reservation}', [ReservationController::class, 'index']);
+    Route::put('reservation/update/{reservation}', [ReservationController::class, 'update']);
+    Route::delete('reservation/delete/{reservation}', [ReservationController::class, 'destroy']);
+    Route::post('reservation/cancel/{reservation}', [ReservationController::class, 'cancel']);
+    Route::post('reservation/confirm/{reservation}', [ReservationController::class, 'confirm']);
+// });
