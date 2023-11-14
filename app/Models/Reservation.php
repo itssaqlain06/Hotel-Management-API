@@ -9,17 +9,16 @@ class Reservation extends Model
 {
     use HasFactory;
 
-    protected $fillable=[
+    protected $fillable = [
         'user_id',
         'hotel_id',
         'room_id',
+        'booking_id',
         'start_date',
         'end_date',
         'number_of_guests',
+        'additional_info',
         'status',
-        'payment_status',
-        'payment_method',
-        'total_amount',
         'special_request'
     ];
 }

@@ -21,8 +21,8 @@ class ReservationController extends Controller
             'user_id' => 'required',
             'hotel_id' => 'required',
             'room_id' => 'required',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
+            'start_date' => 'required',
+            'end_date' => 'required',
             'number_of_guests' => 'required',
         ]);
 
@@ -118,8 +118,6 @@ class ReservationController extends Controller
 
         return $bookingsCount === 0 && $reservationsCount === 0;
     }
-
-
 
     public function show()
     {

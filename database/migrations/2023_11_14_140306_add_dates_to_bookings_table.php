@@ -11,10 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('hotels', function (Blueprint $table) {
-            $table->dropUnique(['name']);
-            $table->dropUnique(['email']);
-            $table->dropUnique(['phone']);
+        Schema::table('bookings', function (Blueprint $table) {
+            $table->date('start_date');
+            $table->date('end_date');
         });
     }
 
@@ -23,8 +22,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('hotels', function (Blueprint $table) {
-            //
+        Schema::table('bookings', function (Blueprint $table) {
+             $table->dropColumn(['start_date', 'end_date']);
         });
     }
 };

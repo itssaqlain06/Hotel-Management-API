@@ -10,6 +10,7 @@ use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class BookingController extends Controller
@@ -22,9 +23,8 @@ class BookingController extends Controller
             'room_id' => 'required',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
-            'number_of_guests' => 'required',
+            'total_amount' => 'required'
         ]);
-
         if ($validatedData->fails()) {
             return response()->json(['errors' => $validatedData->errors()], 400);
         }
@@ -58,6 +58,10 @@ class BookingController extends Controller
         $days_difference = $interval->days;
         $total_amount = $findRoom->price * $days_difference;
 
+        if ($request->total_amount < $total_amount) {
+            return response()->json(['errors' => ['message' => 'The exact price is required']]);
+        }
+        
         // Create booking
         try {
             DB::beginTransaction();
@@ -67,9 +71,7 @@ class BookingController extends Controller
                 'hotel_id' => $request->hotel_id,
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
-                'number_of_guests' => $request->number_of_guests,
-                'total_amount' => $total_amount,
-                'status' => 1,
+                'total_amount' => $total_amount
             ];
             $booking_done = Booking::create($data);
             DB::commit();
@@ -213,13 +215,11 @@ class BookingController extends Controller
             $booking->status = 0;
             $booking->save();
             return response()->json(['success' => ['cancel' => 'Booking canceled successfully']], 200);
-        }else if($booking->status == 0){
+        } else if ($booking->status == 0) {
             $booking->status = 1;
             $booking->save();
             return response()->json(['success' => ['restore' => 'Booking restored successfully']], 200);
-        }
-        
-        else {
+        } else {
             return response()->json(['errors' => ['message' => 'Booking cannot be canceled']], 400);
         }
     }

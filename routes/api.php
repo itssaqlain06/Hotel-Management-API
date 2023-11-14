@@ -11,8 +11,7 @@ Route::post('user/register', [AuthController::class, 'register']);
 Route::post('user/login', [AuthController::class, 'login']);
 Route::get('user/details', [AuthController::class, 'userDetails']);
 
-
-// Route::middleware('auth:api')->group(function () {
+Route::middleware('auth:api')->group(function () {
     // User routes
     Route::get('user', [AuthController::class, 'show']);
     Route::get('user/{user}', [AuthController::class, 'index']);
@@ -28,8 +27,7 @@ Route::get('user/details', [AuthController::class, 'userDetails']);
 
     // Room routes
     Route::post('room/store', [RoomController::class, 'store']);
-    Route::get('room', [RoomController::class, 'show']);
-    Route::get('room/{room}', [RoomController::class, 'index']);
+
     Route::put('room/update/{room}', [RoomController::class, 'update']);
     Route::delete('room/delete/{room}', [RoomController::class, 'destroy']);
 
@@ -49,4 +47,8 @@ Route::get('user/details', [AuthController::class, 'userDetails']);
     Route::delete('reservation/delete/{reservation}', [ReservationController::class, 'destroy']);
     Route::post('reservation/cancel/{reservation}', [ReservationController::class, 'cancel']);
     Route::post('reservation/confirm/{reservation}', [ReservationController::class, 'confirm']);
-// });
+});
+
+// Room route without JWT
+Route::get('room', [RoomController::class, 'show']);
+Route::get('room/{room}', [RoomController::class, 'index']);
