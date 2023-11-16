@@ -18,62 +18,38 @@ class ReservationController extends Controller
     public function store(Request $request)
     {
         $validatedData = Validator::make($request->all(), [
-            'user_id' => 'required',
-            'hotel_id' => 'required',
-            'room_id' => 'required',
-            'start_date' => 'required',
-            'end_date' => 'required',
             'number_of_guests' => 'required',
+            'booking_id' => 'required'
         ]);
+
 
         if ($validatedData->fails()) {
             return response()->json(['errors' => $validatedData->errors()], 400);
         }
 
-        // Check if user exists
-        $findUser = User::find($request->user_id);
-        if (is_null($findUser)) {
-            return response()->json(['errors' => ['message' => 'User not found']], 404);
-        }
 
-        // Check if hotel exists
-        $findHotel = Hotel::find($request->hotel_id);
-        if (is_null($findHotel)) {
-            return response()->json(['errors' => ['message' => 'Hotel not found']], 404);
+        // Getting all data of booking
+        $findBooking = Booking::find($request->booking_id);
+        if ($findBooking) {
+            $user_id = $findBooking->user_id;
+            $hotel_id = $findBooking->hotel_id;
+            $room_id = $findBooking->room_id;
+            $start_date = $findBooking->start_date;
+            $end_date = $findBooking->end_date;
         }
-
-        // Check if room exists
-        $findRoom = Room::find($request->room_id);
-        if (is_null($findRoom)) {
-            return response()->json(['errors' => ['message' => 'Room not found']], 404);
-        }
-
-        // Check room availability
-        $roomAvailable = $this->checkRoomAvailability($request->room_id, $request->start_date, $request->end_date);
-        if (!$roomAvailable) {
-            return response()->json(['errors' => ['message' => 'The reservation for the required room is not available for the selected dates']], 400);
-        }
-        $start_date = new DateTime($request->start_date);
-        $end_date = new DateTime($request->end_date);
-        $interval = $start_date->diff($end_date);
-        $days_difference = $interval->days;
-        $total_amount = $findRoom->price * $days_difference;
-
         // Create booking
         try {
             DB::beginTransaction();
             $data = [
-                'room_id' => $request->room_id,
-                'user_id' => $request->user_id,
-                'hotel_id' => $request->hotel_id,
-                'start_date' => $request->start_date,
-                'end_date' => $request->end_date,
+                'room_id' => $room_id,
+                'user_id' => $user_id,
+                'hotel_id' => $hotel_id,
+                'start_date' => $start_date,
+                'end_date' => $end_date,
                 'number_of_guests' => $request->number_of_guests,
-                'total_amount' => $total_amount,
+                'booking_id' => $request->booking_id,
+                'status' => 1
             ];
-            if ($request->special_request) {
-                $data['special_request'] = $request->special_request;
-            }
             $reservation_done = Reservation::create($data);
             DB::commit();
             return response()->json(['success' => ['message' => 'Reservation created successfully', 'data' => $reservation_done]], 200);
@@ -83,41 +59,43 @@ class ReservationController extends Controller
         }
     }
 
-    protected function checkRoomAvailability($roomId, $startDate, $endDate, $excludeBookingId = null)
-    {
-        $bookingsQuery = Booking::where('room_id', $roomId)
-            ->where(function ($query) use ($startDate, $endDate, $excludeBookingId) {
-                $query->whereBetween('start_date', [$startDate, $endDate])
-                    ->orWhereBetween('end_date', [$startDate, $endDate])
-                    ->orWhere(function ($query) use ($startDate, $endDate) {
-                        $query->where('start_date', '<=', $startDate)
-                            ->where('end_date', '>=', $endDate);
-                    });
-                if ($excludeBookingId !== null) {
-                    $query->where('id', '<>', $excludeBookingId);
-                }
-                $query->where('status', '=', 1);
-            });
+    // protected function checkRoomAvailability($roomId, $startDate, $endDate, $excludeBookingId = null)
+    // {
+    //     $bookingsQuery = Booking::where('room_id', $roomId)
+    //         ->where(function ($query) use ($startDate, $endDate, $excludeBookingId) {
+    //             $query->whereBetween('start_date', [$startDate, $endDate])
+    //                 ->orWhereBetween('end_date', [$startDate, $endDate])
+    //                 ->orWhere(function ($query) use ($startDate, $endDate) {
+    //                     $query->where('start_date', '<=', $startDate)
+    //                         ->where('end_date', '>=', $endDate);
+    //                 });
+    //             if ($excludeBookingId !== null) {
+    //                 $query->where('id', '<>', $excludeBookingId);
+    //             }
+    //             // $query->where('status', '=', 1);
+    //         });
 
-        $reservationsQuery = Reservation::where('room_id', $roomId)
-            ->where(function ($query) use ($startDate, $endDate, $excludeBookingId) {
-                $query->whereBetween('start_date', [$startDate, $endDate])
-                    ->orWhereBetween('end_date', [$startDate, $endDate])
-                    ->orWhere(function ($query) use ($startDate, $endDate) {
-                        $query->where('start_date', '<=', $startDate)
-                            ->where('end_date', '>=', $endDate);
-                    });
-                if ($excludeBookingId !== null) {
-                    $query->where('id', '<>', $excludeBookingId);
-                }
-                $query->whereIn('status', ['pending', 'confirmed']);
-            });
+    //     $reservationsQuery = Reservation::where('room_id', $roomId)
+    //         ->where(function ($query) use ($startDate, $endDate, $excludeBookingId) {
+    //             $query->whereBetween('start_date', [$startDate, $endDate])
+    //                 ->orWhereBetween('end_date', [$startDate, $endDate])
+    //                 ->orWhere(function ($query) use ($startDate, $endDate) {
+    //                     $query->where('start_date', '<=', $startDate)
+    //                         ->where('end_date', '>=', $endDate);
+    //                 });
+    //             if ($excludeBookingId !== null) {
+    //                 $query->where('id', '<>', $excludeBookingId);
+    //             }
+    //             $query->whereIn('status', ['pending', 'confirmed']);
+    //         });
 
-        $bookingsCount = $bookingsQuery->count();
-        $reservationsCount = $reservationsQuery->count();
+    //     // The function counts the number of overlapping bookings and reservations using
+    //     $bookingsCount = $bookingsQuery->count();
+    //     $reservationsCount = $reservationsQuery->count();
 
-        return $bookingsCount === 0 && $reservationsCount === 0;
-    }
+    //     // The function returns true if there are no overlapping bookings and reservations
+    //     return $bookingsCount === 0 && $reservationsCount === 0;
+    // }
 
     public function show()
     {

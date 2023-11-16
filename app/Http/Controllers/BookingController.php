@@ -23,7 +23,7 @@ class BookingController extends Controller
             'room_id' => 'required',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
-            'total_amount' => 'required'
+            'number_of_guests'=>'required'
         ]);
         if ($validatedData->fails()) {
             return response()->json(['errors' => $validatedData->errors()], 400);
@@ -52,15 +52,21 @@ class BookingController extends Controller
         if (!$roomAvailable) {
             return response()->json(['errors' => ['message' => 'Room is not available for the selected dates']], 400);
         }
+
         $start_date = new DateTime($request->start_date);
         $end_date = new DateTime($request->end_date);
         $interval = $start_date->diff($end_date);
         $days_difference = $interval->days;
-        $total_amount = $findRoom->price * $days_difference;
+        $total_amount = $findRoom->price * $days_difference * $request->number_of_guests;
 
-        if ($request->total_amount < $total_amount) {
-            return response()->json(['errors' => ['message' => 'The exact price is required']]);
-        }
+        $data = [
+            'room_id' => $request->room_id,
+            'user_id' => $request->user_id,
+            'hotel_id' => $request->hotel_id,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+            'total_amount' => $total_amount
+        ];
         
         // Create booking
         try {
@@ -71,7 +77,9 @@ class BookingController extends Controller
                 'hotel_id' => $request->hotel_id,
                 'start_date' => $request->start_date,
                 'end_date' => $request->end_date,
-                'total_amount' => $total_amount
+                'total_amount' => $total_amount,
+                'number_of_guests'=>$request->number_of_guests,
+                'status'=>1
             ];
             $booking_done = Booking::create($data);
             DB::commit();
@@ -117,6 +125,7 @@ class BookingController extends Controller
 
     protected function checkRoomAvailability($roomId, $startDate, $endDate, $excludeBookingId = null)
     {
+       
         $bookingsQuery = Booking::where('room_id', $roomId)
             ->where(function ($query) use ($startDate, $endDate, $excludeBookingId) {
                 $query->whereBetween('start_date', [$startDate, $endDate])

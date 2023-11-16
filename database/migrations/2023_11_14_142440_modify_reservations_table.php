@@ -17,9 +17,10 @@ return new class extends Migration
                 $table->unsignedBigInteger('booking_id')->nullable();
                 $table->foreign('booking_id')->references('id')->on('bookings')->onDelete('cascade');
             }
+            $table->string('status');
 
             // Remove columns
-            $table->dropColumn(['payment_method', 'payment_status', 'total_amount']);
+            // $table->dropColumn(['payment_method', 'payment_status', 'total_amount','additional_info','special_request']);
         });
     }
 
@@ -30,13 +31,13 @@ return new class extends Migration
     {
         Schema::table('reservations', function (Blueprint $table) {
             // Add back the removed columns
-            $table->enum('payment_status', ['pending', 'completed'])->default('pending');
-            $table->enum('payment_method', ['Cash', 'JazzCash', 'bank_transfer'])->default('Cash');
-            $table->decimal('total_amount', 10, 2);
+            // $table->enum('payment_status', ['pending', 'completed'])->default('pending');
+            // $table->enum('payment_method', ['Cash', 'JazzCash', 'bank_transfer'])->default('Cash');
+            // $table->decimal('total_amount', 10, 2);
 
             // Remove the new column
-            $table->dropForeign(['booking_id']);
-            $table->dropColumn('booking_id');
+            // $table->dropForeign(['booking_id']);
+            // $table->dropColumn('booking_id');
         });
     }
 };
