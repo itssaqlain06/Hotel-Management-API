@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -160,6 +161,76 @@ class AuthController extends Controller
         return response()->json($response, $errorCode);
     }
 
+    public function booking()
+    {
+        try {
+            // Attempt to parse and authenticate the user from the JWT token
+            $user = JWTAuth::parseToken()->authenticate();
+
+            // Check if the user exists
+            if (!$user) {
+                return response()->json([
+                    'errors' => [
+                        'message' => 'User not found',
+                        'status' => 0
+                    ],
+                ], 404);
+            }
+
+            // Fetch bookings for the authenticated user with room details
+            $bookings = Booking::where('user_id', $user->id)
+                ->join('rooms', 'bookings.room_id', '=', 'rooms.id')
+                ->select('bookings.*', 'rooms.price')
+                ->orderBy('bookings.created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'success' => [
+                    'data' => $bookings,
+                    'status' => 1,
+                ],
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'errors' => [
+                    'error' => 'Token decoding error',
+                    'error_msg' => $e->getMessage()
+                ],
+            ], 401);
+        }
+    }
+
+    public function userDetails()
+    {
+        try {
+            $user = JWTAuth::parseToken()->authenticate();
+
+            if (!$user) {
+                return response()->json([
+                    'errors' => [
+                        'message' => 'User not found',
+                        'status' => 0
+                    ],
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => [
+                    'data' => $user,
+                    'status' => 1,
+                ],
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'errors' => [
+                    'error' => 'Token decoding error',
+                    'error_msg' => $e->getMessage()
+                ],
+            ], 401);
+        }
+    }
+
+
     public function destroy($id)
     {
         $user_id = User::find($id);
@@ -167,21 +238,21 @@ class AuthController extends Controller
         if (is_null($user_id)) {
             $response =
                 [
-                'errors' => [
-                    'error' => "User not exists",
-                    'status' => 0,
-                ],
-            ];
+                    'errors' => [
+                        'error' => "User not exists",
+                        'status' => 0,
+                    ],
+                ];
             $errorCode = 400;
         } else {
             if ($user_found->id == 1 || $user_found->id == 2) {
                 $response =
                     [
-                    'errors' => [
-                        'error' => "Only Manager is allowed to Remove Manager and Admin",
-                        'status' => 0,
-                    ],
-                ];
+                        'errors' => [
+                            'error' => "Only Manager is allowed to Remove Manager and Admin",
+                            'status' => 0,
+                        ],
+                    ];
                 $errorCode = 400;
             } else {
                 DB::beginTransaction();
@@ -210,35 +281,4 @@ class AuthController extends Controller
         }
         return response()->json($response, $errorCode);
     }
-
-    public function userDetails()
-    {
-        try {
-            $user = JWTAuth::parseToken()->authenticate();
-
-            if (!$user) {
-                return response()->json([
-                    'errors' => [
-                        'message' => 'User not found',
-                        'status' => 0                        
-                    ],
-                ], 404);
-            }
-
-            return response()->json([
-                'success' => [
-                    'data' => $user,
-                    'status' => 1,
-                ],
-            ], 200);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'errors' => [
-                    'error' => 'Token decoding error',
-                    'error_msg' => $e->getMessage()
-                ],
-            ], 401);
-        }
-    }
-
 }

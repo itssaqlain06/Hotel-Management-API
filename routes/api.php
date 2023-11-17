@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('user/register', [AuthController::class, 'register']);
 Route::post('user/login', [AuthController::class, 'login']);
 Route::get('user/details', [AuthController::class, 'userDetails']);
+Route::get('user/booking', [AuthController::class, 'booking']);
 
 Route::middleware('auth:api')->group(function () {
     // User routes
